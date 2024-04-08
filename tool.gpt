@@ -1,0 +1,5 @@
+Name: Azure OpenAI Provider
+Description: Model provider for Azure OpenAI hosted models
+Model Provider: true
+
+#!sys.daemon /usr/bin/env python3 ${GPTSCRIPT_TOOL_DIR}/main.py
