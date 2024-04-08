@@ -5,7 +5,7 @@
 ```
 az login
 export AZURE_SUBSCRIPTION_ID=<your-subscription-key>
-export AZURE_RESOURCE_GROUP=<your-resource-group>
+export GPTSCRIPT_AZURE_RESOURCE_GROUP=<your-resource-group>
 ```
 
 ## Usage Example
