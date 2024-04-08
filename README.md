@@ -1,6 +1,6 @@
 1. You must be authenticated with the azure CLI
 2. You need the env variable `AZURE_SUBSCRIPTION_ID` to be configured
-3. You need the env variable `AZURE_RESOURCE_GROUP` to be configured
+3. You need the env variable `GPTSCRIPT_AZURE_RESOURCE_GROUP` to be configured
 
 ```
 az login
