@@ -1,5 +1,6 @@
 Name: Azure OpenAI Provider
 Description: Model provider for Azure OpenAI hosted models
 Model Provider: true
+credential: github.com/gptscript-ai/azure-openai-provider/credential.gpt
 
 #!sys.daemon /usr/bin/env python3 ${GPTSCRIPT_TOOL_DIR}/main.py
