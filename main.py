@@ -1,16 +1,15 @@
 import json
 import os
-import sys
 from typing import AsyncIterable
 
-from azure.identity import DefaultAzureCredential
-from azure.mgmt.cognitiveservices import CognitiveServicesManagementClient
-from azure.mgmt.resource import ResourceManagementClient
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse, StreamingResponse
-from openai import AzureOpenAI, OpenAI
 from openai._streaming import Stream
-from openai.types.chat import ChatCompletionChunk
+from openai._types import NOT_GIVEN
+from openai.types.chat import ChatCompletion, ChatCompletionChunk
+
+import helpers
 
 debug = os.environ.get("GPTSCRIPT_DEBUG", "false") == "true"
 
@@ -21,18 +20,6 @@ def log(*args):
 
 
 app = FastAPI()
-credential = DefaultAzureCredential()
-if 'AZURE_SUBSCRIPTION_ID' not in os.environ:
-    print("Set AZURE_SUBSCRIPTION_ID environment variable")
-    sys.exit(1)
-else:
-    subscription_id = os.environ["AZURE_SUBSCRIPTION_ID"]
-
-token = credential.get_token("https://management.azure.com/.default")
-headers = {
-    "Authorization": f"Bearer {token.token}",
-    "Content-Type": "application/json"
-}
 
 
 @app.middleware("http")
@@ -58,97 +45,41 @@ async def chat_completions(request: Request):
     data = await request.body()
     data = json.loads(data)
 
+    tools = data.get("tools", [])
+
+    temperature = data.get("temperature", NOT_GIVEN)
+    if temperature is not NOT_GIVEN:
+        temperature = float(temperature)
+
+    stream = data.get("stream", False)
+
+    config = await helpers.get_azure_config(data["model"])
+
+    client = helpers.client(
+        endpoint=config.endpoint,
+        deployment_name=config.deployment_name,
+        api_key=config.api_key
+    )
     try:
-        tools = data["tools"]
+        res: Stream[ChatCompletionChunk] | ChatCompletion = client.chat.completions.create(model=data["model"],
+                                                                                           messages=data["messages"],
+                                                                                           tools=tools,
+                                                                                           tool_choice="auto",
+                                                                                           temperature=temperature,
+                                                                                           stream=stream
+                                                                                           )
+        if not stream:
+            return JSONResponse(content=jsonable_encoder(res))
+
+        return StreamingResponse(convert_stream(res), media_type="application/x-ndjson")
     except Exception as e:
-        log("No tools provided: ", e)
-        tools = []
-    client = await get_azure_config(data["model"])
-    res = client.chat.completions.create(model=data["model"], messages=data["messages"], tools=tools,
-                                         tool_choice="auto",
-                                         stream=True)
-    return StreamingResponse(convert_stream(res), media_type="application/x-ndjson")
+        raise HTTPException(status_code=res.response.status_code, detail=f"Error occurred: {e}")
 
 
 async def convert_stream(stream: Stream[ChatCompletionChunk]) -> AsyncIterable[str]:
     for chunk in stream:
-        log("CHUNK: ", chunk.json())
-        yield "data: " + str(chunk.json()) + "\n\n"
-
-
-async def list_resource_groups(client: ResourceManagementClient):
-    group_list = client.resource_groups.list()
-
-    column_width = 40
-    print("Resource Group".ljust(column_width) + "Location")
-    print("-" * (column_width * 2))
-    for group in list(group_list):
-        print(f"{group.name:<{column_width}}{group.location}")
-    print()
-
-
-async def list_openai(client: CognitiveServicesManagementClient, resource_group: str):
-    accounts = client.accounts.list_by_resource_group(resource_group_name=resource_group, api_version="2023-05-01")
-
-    column_width = 40
-    print(f"OpenAI Endpoints in {resource_group}".ljust(column_width) + "Model Name")
-    print("-" * (column_width * 2))
-    for account in list(accounts):
-        if account.kind == "OpenAI":
-            deployments = client.deployments.list(resource_group_name=resource_group,
-                                                  account_name=account.name, api_version="2023-05-01")
-            deployments = list(deployments)
-            model_id = deployments[0].properties.model.name
-            print(f"{account.name:<{column_width}}{model_id}")
-    print()
-
-
-async def get_api_key(resource, resource_group: str,
-                      client: CognitiveServicesManagementClient) -> str:
-    keys = client.accounts.list_keys(resource_group, resource.name)
-    return keys.key1
-
-
-async def get_azure_config(model_name: str | None) -> OpenAI | AzureOpenAI:
-    resource_client = ResourceManagementClient(credential=credential, subscription_id=subscription_id)
-    cognitive_client = CognitiveServicesManagementClient(credential=credential, subscription_id=subscription_id)
-    model_id: str
-    endpoint: str
-    api_key: str
-
-    if "GPTSCRIPT_AZURE_RESOURCE_GROUP" in os.environ:
-        resource_group = os.environ["GPTSCRIPT_AZURE_RESOURCE_GROUP"]
-    else:
-        await list_resource_groups(resource_client)
-        print("Set GPTSCRIPT_AZURE_RESOURCE_GROUP environment variable")
-        sys.exit(0)
-
-    accounts = cognitive_client.accounts.list_by_resource_group(resource_group_name=resource_group,
-                                                                api_version="2023-05-01")
-    for account in list(accounts):
-        selected_resource = account
-        endpoint = account.properties.endpoint
-        deployments = cognitive_client.deployments.list(resource_group_name=resource_group,
-                                                        account_name=account.name, api_version="2023-05-01")
-        deployments = list(deployments)
-        deployment_name = deployments[0].name
-        if deployments[0].properties.model.name == model_name:
-            model_id = deployments[0].properties.model.name
-            break
-
-    if 'model_id' not in locals():
-        print(f"Did not find any matches for model name {model_name}.")
-        sys.exit(1)
-
-    api_key = await get_api_key(client=cognitive_client, resource=selected_resource, resource_group=resource_group)
-    client = AzureOpenAI(
-        azure_endpoint=endpoint,
-        azure_deployment=deployment_name,
-        api_key=api_key,
-        api_version="2024-02-01"
-    )
-
-    return client
+        log("CHUNK: ", chunk.model_dump_json())
+        yield "data: " + str(chunk.model_dump_json()) + "\n\n"
 
 
 if __name__ == "__main__":

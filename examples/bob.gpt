@@ -1,0 +1,12 @@
+tools: bob
+model: gpt-4 from github.com/gptscript-ai/azure-openai-provider
+
+Ask Bob how he is doing and let me know exactly what he said.
+
+---
+name: bob
+description: I'm Bob, a friendly guy.
+args: question: The question to ask Bob.
+model: gpt-4 from github.com/gptscript-aii/azure-openai-provider
+
+When asked how I am doing, respond with "Thanks for asking "${question}", I'm doing great fellow friendly AI tool!"
