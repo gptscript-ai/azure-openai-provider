@@ -47,6 +47,11 @@ async def chat_completions(request: Request):
 
     tools = data.get("tools", NOT_GIVEN)
 
+    if tools is not NOT_GIVEN:
+        tool_choice = 'auto'
+    else:
+        tool_choice = NOT_GIVEN
+
     temperature = data.get("temperature", NOT_GIVEN)
     if temperature is not NOT_GIVEN:
         temperature = float(temperature)
@@ -64,7 +69,7 @@ async def chat_completions(request: Request):
         res: Stream[ChatCompletionChunk] | ChatCompletion = client.chat.completions.create(model=data["model"],
                                                                                            messages=data["messages"],
                                                                                            tools=tools,
-                                                                                           tool_choice="auto",
+                                                                                           tool_choice=tool_choice,
                                                                                            temperature=temperature,
                                                                                            stream=stream
                                                                                            )
