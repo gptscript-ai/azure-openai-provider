@@ -45,7 +45,7 @@ async def chat_completions(request: Request):
     data = await request.body()
     data = json.loads(data)
 
-    tools = data.get("tools", [])
+    tools = data.get("tools", NOT_GIVEN)
 
     temperature = data.get("temperature", NOT_GIVEN)
     if temperature is not NOT_GIVEN:
