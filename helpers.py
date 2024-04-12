@@ -18,27 +18,27 @@ async def list_resource_groups(client: ResourceManagementClient):
     group_list = client.resource_groups.list()
 
     column_width = 40
-    print("Resource Group".ljust(column_width) + "Location")
-    print("-" * (column_width * 2))
+    print("Resource Group".ljust(column_width) + "Location", file=sys.stderr)
+    print("-" * (column_width * 2), file=sys.stderr)
     for group in list(group_list):
-        print(f"{group.name:<{column_width}}{group.location}")
-    print()
+        print(f"{group.name:<{column_width}}{group.location}", file=sys.stderr)
+    print("", file=sys.stderr)
 
 
 async def list_openai(client: CognitiveServicesManagementClient, resource_group: str):
     accounts = client.accounts.list_by_resource_group(resource_group_name=resource_group, api_version="2023-05-01")
 
     column_width = 40
-    print(f"OpenAI Endpoints in {resource_group}".ljust(column_width) + "Model Name")
-    print("-" * (column_width * 2))
+    print(f"OpenAI Endpoints in {resource_group}".ljust(column_width) + "Model Name", file=sys.stderr)
+    print("-" * (column_width * 2), file=sys.stderr)
     for account in list(accounts):
         if account.kind == "OpenAI":
             deployments = client.deployments.list(resource_group_name=resource_group,
                                                   account_name=account.name, api_version="2023-05-01")
             deployments = list(deployments)
             model_id = deployments[0].properties.model.name
-            print(f"{account.name:<{column_width}}{model_id}")
-    print()
+            print(f"{account.name:<{column_width}}{model_id}", file=sys.stderr)
+    print("", file=sys.stderr)
 
 
 async def get_api_key(resource, resource_group: str,
@@ -86,7 +86,7 @@ async def get_azure_config(model_name: str | None = None) -> AzureConfig | None:
 
     credential = DefaultAzureCredential()
     if 'AZURE_SUBSCRIPTION_ID' not in os.environ:
-        print("Set AZURE_SUBSCRIPTION_ID environment variable")
+        print("Set AZURE_SUBSCRIPTION_ID environment variable", file=sys.stderr)
         return None
     else:
         subscription_id = os.environ["AZURE_SUBSCRIPTION_ID"]
@@ -99,7 +99,7 @@ async def get_azure_config(model_name: str | None = None) -> AzureConfig | None:
         resource_group = os.environ["GPTSCRIPT_AZURE_RESOURCE_GROUP"]
     else:
         await list_resource_groups(resource_client)
-        print("Set GPTSCRIPT_AZURE_RESOURCE_GROUP environment variable")
+        print("Set GPTSCRIPT_AZURE_RESOURCE_GROUP environment variable", file=sys.stderr)
         return None
 
     accounts = cognitive_client.accounts.list_by_resource_group(resource_group_name=resource_group,
@@ -116,7 +116,7 @@ async def get_azure_config(model_name: str | None = None) -> AzureConfig | None:
             break
 
     if 'model_id' not in locals():
-        print(f"Did not find any matches for model name {model_name}.")
+        print(f"Did not find any matches for model name {model_name}.", file=sys.stderr)
         sys.exit(1)
 
     api_key = await get_api_key(client=cognitive_client, resource=selected_resource, resource_group=resource_group)
