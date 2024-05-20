@@ -143,6 +143,9 @@ if __name__ == "__main__":
     command = ["az", "login", "--only-show-errors", "-o",
                "none"]
     result = subprocess.run(command, stdin=None)
+    if result.returncode != 0:
+        print("Failed to login to Azure.", file=sys.stderr)
+        sys.exit(1)
 
     # get model name
     command = ["gptscript", "--quiet=true", "--disable-cache", "sys.prompt",
