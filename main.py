@@ -81,6 +81,7 @@ async def chat_completions(request: Request):
         return StreamingResponse(convert_stream(res), media_type="application/x-ndjson")
     except Exception as e:
         try:
+            print("Error occurred: ", e.__dict__)
             error_code = e.__dict__["statusCode"]
         except:
             error_code = 500
