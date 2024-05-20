@@ -80,7 +80,11 @@ async def chat_completions(request: Request):
 
         return StreamingResponse(convert_stream(res), media_type="application/x-ndjson")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error occurred: {e}")
+        try:
+            error_code = e.__dict__["statusCode"]
+        except:
+            error_code = 500
+        raise HTTPException(status_code=error_code, detail=f"Error occurred: {e}")
 
 
 async def convert_stream(stream: Stream[ChatCompletionChunk]) -> AsyncIterable[str]:
