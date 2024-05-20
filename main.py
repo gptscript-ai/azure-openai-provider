@@ -60,7 +60,8 @@ async def chat_completions(request: Request):
 
     config = await helpers.get_azure_config(data["model"])
     if config == None:
-        raise HTTPException(status_code=400, detail="Azure config not found. Please ensure you have configured the environment variables correctly.")
+        raise HTTPException(status_code=400,
+                            detail="Azure config not found. Please ensure you have configured the environment variables correctly.")
 
     client = helpers.client(
         endpoint=config.endpoint,
