@@ -2,11 +2,10 @@ import json
 import os
 import subprocess
 import sys
-from dataclasses import dataclass
-
 from azure.identity import DefaultAzureCredential
 from azure.mgmt.cognitiveservices import CognitiveServicesManagementClient
 from azure.mgmt.resource import ResourceManagementClient
+from dataclasses import dataclass
 from openai import AzureOpenAI
 
 endpoint: str
@@ -140,9 +139,14 @@ if __name__ == "__main__":
     import asyncio
 
     # az login
-    command = ["az", "login", "--only-show-errors", "-o",
-               "none"]
-    result = subprocess.run(command, stdin=None)
+    try:
+        command = ["az", "login", "--only-show-errors", "-o",
+                   "none"]
+        result = subprocess.run(command, stdin=None)
+    except FileNotFoundError:
+        print("Azure CLI not found. Please install it.", file=sys.stderr)
+        sys.exit(1)
+
     if result.returncode != 0:
         print("Failed to login to Azure.", file=sys.stderr)
         sys.exit(1)
