@@ -2,10 +2,11 @@ import json
 import os
 import subprocess
 import sys
+from dataclasses import dataclass
+
 from azure.identity import DefaultAzureCredential
 from azure.mgmt.cognitiveservices import CognitiveServicesManagementClient
 from azure.mgmt.resource import ResourceManagementClient
-from dataclasses import dataclass
 from openai import AzureOpenAI
 
 endpoint: str
@@ -108,11 +109,12 @@ async def get_azure_config(model_name: str | None = None) -> AzureConfig | None:
         endpoint = account.properties.endpoint
         deployments = cognitive_client.deployments.list(resource_group_name=resource_group,
                                                         account_name=account.name, api_version="2023-05-01")
-        deployments = list(deployments)
-        deployment_name = deployments[0].name
-        if deployments[0].properties.model.name == model_name:
-            model_id = deployments[0].properties.model.name
-            break
+        for deployment in list(deployments):
+            if deployment.properties.model.name == model_name:
+                print("found it")
+                deployment_name = deployment.name
+                model_id = deployment.properties.model.name
+                break
 
     if 'model_id' not in locals():
         print(f"Did not find any matches for model name {model_name}.", file=sys.stderr)
