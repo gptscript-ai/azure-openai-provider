@@ -7,7 +7,7 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse, StreamingResponse
 from openai._streaming import Stream
 from openai._types import NOT_GIVEN
-from openai.types.chat import ChatCompletion, ChatCompletionChunk, ChatCompletionMessage
+from openai.types.chat import ChatCompletion, ChatCompletionChunk
 
 import helpers
 
@@ -68,7 +68,7 @@ async def chat_completions(request: Request):
     stream = data.get("stream", False)
 
     messages = data["messages"]
-    messages.insert(0, ChatCompletionMessage(content=system, role="system"))
+    messages.insert(0, {"content": system, "role": "system"})
 
     config = await helpers.get_azure_config(data["model"])
     if config == None:
