@@ -111,7 +111,6 @@ async def get_azure_config(model_name: str | None = None) -> AzureConfig | None:
                                                         account_name=account.name, api_version="2023-05-01")
         for deployment in list(deployments):
             if deployment.properties.model.name == model_name:
-                print("found it")
                 deployment_name = deployment.name
                 model_id = deployment.properties.model.name
                 break
