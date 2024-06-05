@@ -139,6 +139,24 @@ def client(endpoint: str, deployment_name: str, api_key: str, api_version: str =
 if __name__ == "__main__":
     import asyncio
 
+    if all([key in os.environ for key in ["GPTSCRIPT_AZURE_ENDPOINT", "GPTSCRIPT_AZURE_API_KEY",
+                                          "GPTSCRIPT_AZURE_DEPLOYMENT_NAME"]]):
+        config = AzureConfig(
+            endpoint=os.environ["GPTSCRIPT_AZURE_ENDPOINT"],
+            api_key=os.environ["GPTSCRIPT_AZURE_API_KEY"],
+            deployment_name=os.environ["GPTSCRIPT_AZURE_DEPLOYMENT_NAME"]
+        )
+        config = {
+            "env": {
+                "GPTSCRIPT_AZURE_API_KEY": config.api_key,
+                "GPTSCRIPT_AZURE_ENDPOINT": config.endpoint,
+                "GPTSCRIPT_AZURE_DEPLOYMENT_NAME": config.deployment_name,
+            }
+        }
+
+        print(json.dumps(config))
+        sys.exit(0)
+
     # az login
     try:
         command = ["az", "login", "--only-show-errors", "-o",
