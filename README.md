@@ -11,7 +11,7 @@ export GPTSCRIPT_AZURE_RESOURCE_GROUP=<your-resource-group>
 ## Usage Example
 
 ```
-gptscript --default-model='gpt-4 from github.com/gptscript-ai/azure-oepnai-provider' examples/helloworld.gpt
+gptscript --default-model='gpt-4 from github.com/gptscript-ai/azure-openai-provider' examples/helloworld.gpt
 ```
 
 ## Development
