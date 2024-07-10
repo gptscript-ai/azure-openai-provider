@@ -1,4 +1,5 @@
 import json
+import os
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -65,6 +66,11 @@ async def get_azure_config(model_name: str | None = None,
     global endpoint
     global api_key
     global deployment_name
+
+    if 'GPTSCRIPT_AZURE_ENDPOINT' in os.environ and 'GPTSCRIPT_AZURE_API_KEY' in os.environ and 'GPTSCRIPT_AZURE_DEPLOYMENT_NAME' in os.environ:
+        endpoint = os.environ['GPTSCRIPT_AZURE_ENDPOINT']
+        api_key = os.environ['GPTSCRIPT_AZURE_API_KEY']
+        deployment_name = os.environ['GPTSCRIPT_AZURE_DEPLOYMENT_NAME']
 
     if 'endpoint' in globals() and 'api_key' in globals() and 'deployment_name' in globals():
         return AzureConfig(
