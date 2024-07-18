@@ -1,5 +1,0 @@
-credential: ./credential.gpt
-
-#!/bin/bash
-
-echo 'got it'
