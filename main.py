@@ -78,7 +78,8 @@ async def chat_completions(request: Request):
     client = helpers.client(
         endpoint=config.endpoint,
         deployment_name=config.deployment_name,
-        api_key=config.api_key
+        api_key=config.api_key,
+        api_version=config.api_version
     )
     try:
         res: Stream[ChatCompletionChunk] | ChatCompletion = client.chat.completions.create(model=data["model"],
