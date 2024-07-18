@@ -79,10 +79,13 @@ async def get_azure_config(model_name: str | None = None,
             deployment_name=deployment_name
         )
 
-    credential = DefaultAzureCredential()
+    try:
+        credential = DefaultAzureCredential()
+    except:
+        print("Failed to get Azure credentials.", file=sys.stderr)
+        sys.exit(1)
 
     if subscription_id is None:
-        print("Please set your Azure Subscription ID.", file=sys.stderr)
         return None
 
     resource_client = ResourceManagementClient(credential=credential, subscription_id=subscription_id)
@@ -130,66 +133,71 @@ def client(endpoint: str, deployment_name: str, api_key: str, api_version: str =
 
 if __name__ == "__main__":
     import asyncio
-    from gptscript.gptscript import GPTScript
-    from gptscript.opts import Options
 
-    gptscript = GPTScript()
+    config = asyncio.run(get_azure_config())
+
+    if config is None:
+        # az login
+        try:
+            command = "az login --only-show-errors -o none"
+            result = subprocess.run(command, shell=True, stdin=None)
+        except FileNotFoundError:
+            print("Azure CLI not found. Please install it.", file=sys.stderr)
+            sys.exit(1)
+
+        if result.returncode != 0:
+            print("Failed to login to Azure.", file=sys.stderr)
+            sys.exit(1)
+
+        from gptscript.gptscript import GPTScript
+        from gptscript.opts import Options
+
+        gptscript = GPTScript()
 
 
-    async def prompt(tool_input) -> dict:
-        run = gptscript.run(
-            tool_path="sys.prompt",
-            opts=Options(
-                input=json.dumps(tool_input),
+        async def prompt(tool_input) -> dict:
+            run = gptscript.run(
+                tool_path="sys.prompt",
+                opts=Options(
+                    input=json.dumps(tool_input),
+                )
             )
-        )
-        output = await run.text()
-        return json.loads(output)
+            output = await run.text()
+            return json.loads(output)
 
 
-    # az login
-    try:
-        command = "az login --only-show-errors -o none"
-        result = subprocess.run(command, shell=True, stdin=None)
-    except FileNotFoundError:
-        print("Azure CLI not found. Please install it.", file=sys.stderr)
-        sys.exit(1)
+        # get model name
+        tool_input = {
+            "message": "Enter the name of the model:",
+            "fields": "name",
+            "sensitive": "false",
+        }
+        result = asyncio.run(prompt(tool_input))
+        model_name = result["name"]
 
-    if result.returncode != 0:
-        print("Failed to login to Azure.", file=sys.stderr)
-        sys.exit(1)
+        # get azure subscription id
+        tool_input = {
+            "message": "Enter your azure subscription id:",
+            "fields": "id",
+            "sensitive": "false",
+        }
+        result = asyncio.run(prompt(tool_input))
+        azure_subscription_id = result["id"]
 
-    # get model name
-    tool_input = {
-        "message": "Enter the name of the model:",
-        "fields": "name",
-        "sensitive": "false",
-    }
-    result = asyncio.run(prompt(tool_input))
-    model_name = result["name"]
+        config = asyncio.run(get_azure_config(model_name=model_name, subscription_id=azure_subscription_id))
 
-    # get azure subscription id
-    tool_input = {
-        "message": "Enter your azure subscription id:",
-        "fields": "id",
-        "sensitive": "false",
-    }
-    result = asyncio.run(prompt(tool_input))
-    azure_subscription_id = result["id"]
+        # get resource group
+        tool_input = {
+            "message": "Enter your azure resource group name:",
+            "fields": "name",
+            "sensitive": "false",
+        }
+        result = asyncio.run(prompt(tool_input))
+        azure_resource_group = result["name"]
+        gptscript.close()
 
-    config = asyncio.run(get_azure_config(model_name=model_name, subscription_id=azure_subscription_id))
-
-    # get resource group
-    tool_input = {
-        "message": "Enter your azure resource group name:",
-        "fields": "name",
-        "sensitive": "false",
-    }
-    result = asyncio.run(prompt(tool_input))
-    azure_resource_group = result["name"]
-
-    config = asyncio.run(get_azure_config(model_name=model_name, subscription_id=azure_subscription_id,
-                                          resource_group=azure_resource_group))
+        config = asyncio.run(get_azure_config(model_name=model_name, subscription_id=azure_subscription_id,
+                                              resource_group=azure_resource_group))
 
     env = {
         "env": {
@@ -198,5 +206,4 @@ if __name__ == "__main__":
             "GPTSCRIPT_AZURE_DEPLOYMENT_NAME": config.deployment_name,
         }
     }
-    gptscript.close()
     print(json.dumps(env))
