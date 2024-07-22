@@ -108,29 +108,29 @@ if __name__ == "__main__":
         # get Azure API key
         tool_input = {
             "message": "Please provide your Azure API key:",
-            "fields": "id",
-            "sensitive": "false",
+            "fields": "key",
+            "sensitive": "true",
         }
         result = asyncio.run(prompt(tool_input))
-        azure_api_key = result["id"]
+        azure_api_key = result["key"]
 
         # get Azure endpoint
         tool_input = {
             "message": "Please provide your Azure endpoint:",
-            "fields": "name",
+            "fields": "endpoint",
             "sensitive": "false",
         }
         result = asyncio.run(prompt(tool_input))
-        azure_endpoint = result["name"]
+        azure_endpoint = result["endpoint"]
 
         # get model name
         tool_input = {
             "message": "Please provide your Azure model or deployment name:",
-            "fields": "name",
+            "fields": "model",
             "sensitive": "false",
         }
         result = asyncio.run(prompt(tool_input))
-        model_name = result["name"]
+        model_name = result["model"]
 
         config = asyncio.run(get_azure_config(
             model_name=model_name,
