@@ -53,6 +53,7 @@ async def list_models() -> JSONResponse:
 async def chat_completions(request: Request):
     data = await request.body()
     data = json.loads(data)
+    log("REQUEST JSON from completions: ", json.dumps(data, indent=4))
 
     tools = data.get("tools", NOT_GIVEN)
 
@@ -70,7 +71,9 @@ async def chat_completions(request: Request):
     messages = data["messages"]
     messages.insert(0, {"content": system, "role": "system"})
 
+    log(f"Model: {data['model']}")
     config = await helpers.get_azure_config(data["model"])
+    log(f"deployment_name: {config.deployment_name}")
     if config == None:
         raise HTTPException(status_code=400,
                             detail="Azure config not found. Please ensure you have configured the environment variables correctly.")
@@ -78,7 +81,8 @@ async def chat_completions(request: Request):
     client = helpers.client(
         endpoint=config.endpoint,
         deployment_name=config.deployment_name,
-        api_key=config.api_key
+        api_key=config.api_key,
+        api_version=config.api_version
     )
     try:
         res: Stream[ChatCompletionChunk] | ChatCompletion = client.chat.completions.create(model=data["model"],
